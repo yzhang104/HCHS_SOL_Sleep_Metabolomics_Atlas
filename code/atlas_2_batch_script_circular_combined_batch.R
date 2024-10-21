@@ -10,6 +10,8 @@ options(survey.lonely.psu="remove")
 options(scipen = 999, stringsAsFactors = F)
 
 cir_input_grid<-read.csv(file="data/atlast_cir_input_grid.csv",stringsAsFactors = F,header = T)
+# read in the nonlinearity results table
+nl_tbl<-read.csv("data/nonlinearity_model.csv")
 
 dataset_code<-cir_input_grid[comb_number,"imp_dataset"]
 sleep_trait<-cir_input_grid[comb_number,"sleep_trait"]
@@ -355,7 +357,7 @@ b1b2_half_pheno<-rbind(b1b2_half_norm_list[[1]],b1b2_half_norm_list[[2]])%>%
 b1b2_imp_mdl<-list()
 for (m in seq_along(b1b2_imp_pheno_list)){
   # multiple imputation datasets
-  b1b2_imp_mdl[[m]]<-atlas_cir_svyreg_loop(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,trait=sleep_trait,trait_as_predictor=T)
+  b1b2_imp_mdl[[m]]<-atlas_cir_svyreg_loop_nonlinear(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,trait=sleep_trait,trait_as_predictor=T,model_input=nl_tbl)
 }
 b1b2_imp_mdl_append<-dplyr::bind_rows(b1b2_imp_mdl, .id = "imp_dataset")
 # unnest the list column to get the combined sin estimates in separate columns
@@ -391,8 +393,7 @@ b1b2_imp_mdl_combine<-merge(b1b2_imp_mdl_sin_combine[,c("metabolite","sin_beta",
   merge(.,b1b2_imp_mdl_p_combine,by="metabolite")
 
 # xenobiotic metabolites
-b1b2_half_mdl<-atlas_cir_svyreg_loop(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,
-                                     trait=sleep_trait,trait_as_predictor=T)%>%
+b1b2_half_mdl<-atlas_cir_svyreg_loop_nonlinear(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,trait=sleep_trait,trait_as_predictor=T,model_input=nl_tbl)%>%
   dplyr::mutate(imp_dataset="half",
                 p_acat=p_val)
 # combine xenobiotic and nonxenobiotic results
@@ -408,8 +409,8 @@ b1b2_imp_mdl_total<-rbind(b1b2_imp_mdl_combine,b1b2_half_mdl[,c("metabolite","n"
 b1b2_imp_strat_mdl<-list()
 for (m in seq_along(b1b2_imp_pheno_list)){
   # multiple imputation datasets
-  b1b2_imp_strat_mdl[[m]]<-atlas_cir_strat_svyreg_loop(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,
-                                                       trait_for_model="original",trait=sleep_trait,trait_as_predictor=T,stratifier=stratifier)
+  b1b2_imp_strat_mdl[[m]]<-atlas_cir_strat_svyreg_loop_nonlinear(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,
+                                                       trait_for_model="original",trait=sleep_trait,trait_as_predictor=T,stratifier=stratifier,model_input=nl_tbl)
 }
 b1b2_imp_strat_mdl_append<-dplyr::bind_rows(b1b2_imp_strat_mdl, .id = "imp_dataset")
 
@@ -482,8 +483,8 @@ b1b2_imp_strat_male_mdl_combine<-merge(b1b2_imp_strat_male_mdl_sin_combine[,c("m
   merge(.,b1b2_imp_strat_male_mdl_p_combine,by="metabolite")
 
 # xenobiotic metabolites
-b1b2_half_strat_mdl<-atlas_cir_strat_svyreg_loop(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,
-                                                 trait_for_model="original",trait=sleep_trait,trait_as_predictor=T,stratifier=stratifier)%>%
+b1b2_half_strat_mdl<-atlas_cir_strat_svyreg_loop_nonlinear(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,
+                                                 trait_for_model="original",trait=sleep_trait,trait_as_predictor=T,stratifier=stratifier,model_input=nl_tbl)%>%
   dplyr::mutate(imp_dataset="half",
                 p_acat=p_val)
 

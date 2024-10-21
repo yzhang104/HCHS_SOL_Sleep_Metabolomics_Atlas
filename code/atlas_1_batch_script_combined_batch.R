@@ -11,6 +11,8 @@ options(survey.lonely.psu="remove")
 options(scipen = 999, stringsAsFactors = F)
 
 input_grid<-read.csv("data/atlast_input_grid.csv",stringsAsFactors = F,header = T)
+# read in the nonlinearity results table
+nl_tbl<-read.csv("data/nonlinearity_model.csv")
 
 dataset_code<-input_grid[comb_number,"imp_dataset"]
 sleep_trait<-input_grid[comb_number,"sleep_trait"]
@@ -360,7 +362,7 @@ b1b2_half_pheno<-rbind(b1b2_half_norm_list[[1]],b1b2_half_norm_list[[2]])%>%
 b1b2_imp_mdl<-list()
 for (m in seq_along(b1b2_imp_pheno_list)){
   # multiple imputation datasets
-  b1b2_imp_mdl[[m]]<-svyreg_loop(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,trait_for_model="original",trait_as_predictor=T)
+  b1b2_imp_mdl[[m]]<-svyreg_loop_nonlinear(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,trait_for_model="original",trait_as_predictor=T,model_input=nl_tbl)
   }
 b1b2_imp_mdl_append<-dplyr::bind_rows(b1b2_imp_mdl, .id = "imp_dataset")
 # unnest the list column to get the combined estimates in separate columns
@@ -377,7 +379,7 @@ b1b2_imp_mdl_combine <- b1b2_imp_mdl_append %>%
     n=unique(b1b2_imp_mdl_append$n))
 
 # xenobiotic metabolites
-b1b2_half_mdl<-svyreg_loop(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,trait_for_model="original",trait_as_predictor=T)%>%
+b1b2_half_mdl<-svyreg_loop_nonlinear(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,trait_for_model="original",trait_as_predictor=T,model_input=nl_tbl)%>%
   dplyr::mutate(imp_dataset="half",
                 model=model,
                 strata = "both",
@@ -394,8 +396,8 @@ b1b2_imp_mdl_total<-rbind(b1b2_imp_mdl_combine[,c("metabolite","beta","se","n","
   b1b2_imp_strat_mdl<-list()
   for (m in seq_along(b1b2_imp_pheno_list)){
     # multiple imputation datasets
-    b1b2_imp_strat_mdl[[m]]<-strat_svyreg_loop(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,
-                                               trait_for_model="original",trait_as_predictor=T,stratifier=stratifier)
+        b1b2_imp_strat_mdl[[m]]<-strat_svyreg_loop_nonlinear(data=b1b2_imp_pheno_list[[m]],covar=covars,end=ncol(b1_imp_norm_list[[m]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,
+                                               trait_for_model="original",trait_as_predictor=T,stratifier=stratifier,model_input=nl_tbl)
   }
   b1b2_imp_strat_mdl_append<-dplyr::bind_rows(b1b2_imp_strat_mdl, .id = "imp_dataset")
   
@@ -426,8 +428,8 @@ b1b2_imp_mdl_total<-rbind(b1b2_imp_mdl_combine[,c("metabolite","beta","se","n","
       n=unique(b1b2_imp_strat_mdl_append[which(b1b2_imp_strat_mdl_append$strata=="Male"),"n"]))
   
   # xenobiotic metabolites
-  b1b2_half_strat_mdl<-strat_svyreg_loop(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,trait_for_model="original",
-                                         trait_as_predictor=T,stratifier=stratifier)%>%
+  b1b2_half_strat_mdl<-strat_svyreg_loop_nonlinear(data=b1b2_half_pheno,covar=covars,end=ncol(b1b2_half_list[[1]]),metab_is_cont=T,metab_is_complete=T,trait_original=sleep_trait,trait_for_model="original",
+                                         trait_as_predictor=T,stratifier=stratifier,model_input=nl_tbl)%>%
     dplyr::mutate(imp_dataset="half")
   
   b1b2_imp_strat_female_mdl_total<-rbind(b1b2_imp_strat_female_mdl_combine[,c("metabolite","beta","se","p_val","strata","n")],b1b2_half_strat_mdl[which(b1b2_half_strat_mdl$strata=="Female"),c("metabolite","beta","se","p_val","strata","n")])%>%
